@@ -20,13 +20,13 @@ const keyParameters = "parameters"
 var defaultDelimiter = ' '
 
 type connection struct {
-	Username    *string             `json:"username"`
-	Password    *string             `json:"password"`
+	Username    *string             `json:"username,omitempty"`
+	Password    *string             `json:"password,omitempty"`
 	Host        string              `json:"host"`
 	Port        string              `json:"port"`
 	NumericPort int                 `json:"numeric_port"`
 	Database    string              `json:"database"`
-	Parameters  map[string][]string `json:"parameters"`
+	Parameters  map[string][]string `json:"parameters,omitempty"`
 }
 
 func (c *connection) Address() string {
