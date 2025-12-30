@@ -15,7 +15,7 @@ const keyHost = "host"
 const keyPort = "port"
 const keyNumericPort = "numeric_port"
 const keyDatabase = "database"
-const keyParameters = "parameters"
+const keyProperties = "properties"
 
 var defaultDelimiter = ' '
 
@@ -26,7 +26,7 @@ type connection struct {
 	Port        string            `json:"port"`
 	NumericPort int               `json:"numeric_port"`
 	Database    string            `json:"database"`
-	Parameters  map[string]string `json:"parameters,omitempty"`
+	Properties  map[string]string `json:"properties,omitempty"`
 }
 
 func (c *connection) Address() string {
@@ -37,8 +37,8 @@ func (c *connection) Address() string {
 	return c.Host
 }
 
-func (c *connection) HasParameters() bool {
-	return len(c.Parameters) > 0
+func (c *connection) HasProperties() bool {
+	return len(c.Properties) > 0
 }
 
 func newConnection(data map[string]interface{}) (*connection, error) {
@@ -76,7 +76,7 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 	}
 
 	data := make(map[string]interface{})
-	parameters := make(map[string]string)
+	properties := make(map[string]string)
 
 	if u.Scheme != "" {
 		data[keyScheme] = u.Scheme
@@ -107,10 +107,10 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 
 	if queries := u.Query(); len(queries) > 0 {
 		for k, v := range queries {
-			parameters[k] = v[0]
+			properties[k] = v[0]
 		}
 
-		data[keyParameters] = parameters
+		data[keyProperties] = properties
 	}
 
 	return newConnection(data)
