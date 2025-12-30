@@ -24,7 +24,7 @@ func (p *parser) Delimiter(delimiter rune) *parser {
 	return p
 }
 
-func (p *parser) OverwriteMapping(mapping map[string]string) *parser {
+func (p *parser) UseMapping(mapping map[string]string) *parser {
 	p.mapping = mapping
 
 	return p
@@ -42,7 +42,7 @@ func (p *parser) FromUrl(input string) (*config, error) {
 	return nil, nil
 }
 
-func (p *parser) FromDelimitedString(input string) (*config, error) {
+func (p *parser) FromPair(input string) (*config, error) {
 	return nil, nil
 }
 
@@ -56,7 +56,7 @@ func (p *parser) Parse(input string) (*config, error) {
 		return p.FromUrl(input)
 	}
 
-	return p.FromDelimitedString(input)
+	return p.FromPair(input)
 }
 
 func NewParser() *parser {
