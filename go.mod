@@ -1,6 +1,6 @@
 module github.com/poorly-written/go-connection-string-parser
 
-go 1.20.0
+go 1.19
 
 require github.com/stretchr/testify v1.11.1
 
