@@ -1,7 +1,6 @@
 package connection_string
 
 import (
-	"maps"
 	"math"
 	"testing"
 
@@ -281,8 +280,13 @@ var delimitedStringChecks = map[string]dataProvider{
 
 func TestRootLevelParseFunction(t *testing.T) {
 	checks := make(map[string]dataProvider)
-	maps.Insert(checks, maps.All(urlChecks))
-	maps.Insert(checks, maps.All(delimitedStringChecks))
+	for k, v := range urlChecks {
+		checks[k] = v
+	}
+
+	for k, v := range delimitedStringChecks {
+		checks[k] = v
+	}
 
 	for name, testCase := range checks {
 		t.Run(name, func(t *testing.T) {
