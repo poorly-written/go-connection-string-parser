@@ -20,13 +20,13 @@ const keyParameters = "parameters"
 var defaultDelimiter = ' '
 
 type connection struct {
-	Username    *string             `json:"username,omitempty"`
-	Password    *string             `json:"password,omitempty"`
-	Host        string              `json:"host"`
-	Port        string              `json:"port"`
-	NumericPort int                 `json:"numeric_port"`
-	Database    string              `json:"database"`
-	Parameters  map[string][]string `json:"parameters,omitempty"`
+	Username    *string           `json:"username,omitempty"`
+	Password    *string           `json:"password,omitempty"`
+	Host        string            `json:"host"`
+	Port        string            `json:"port"`
+	NumericPort int               `json:"numeric_port"`
+	Database    string            `json:"database"`
+	Parameters  map[string]string `json:"parameters,omitempty"`
 }
 
 func (c *connection) Address() string {
@@ -39,15 +39,6 @@ func (c *connection) Address() string {
 
 func (c *connection) HasParameters() bool {
 	return len(c.Parameters) > 0
-}
-
-func (c *connection) FlatParameters() map[string]string {
-	values := make(map[string]string)
-	for k, v := range c.Parameters {
-		values[k] = v[0]
-	}
-
-	return values
 }
 
 func newConnection(data map[string]interface{}) (*connection, error) {
@@ -85,7 +76,7 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 	}
 
 	data := make(map[string]interface{})
-	parameters := make(map[string][]string)
+	parameters := make(map[string]string)
 
 	if u.Scheme != "" {
 		data[keyScheme] = u.Scheme
@@ -116,7 +107,7 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 
 	if queries := u.Query(); len(queries) > 0 {
 		for k, v := range queries {
-			parameters[k] = v
+			parameters[k] = v[0]
 		}
 
 		data[keyParameters] = parameters
