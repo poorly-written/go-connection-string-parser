@@ -38,11 +38,11 @@ func (p *parser) AdditionalMapping(mapping map[string]string) *parser {
 	return p
 }
 
-func (p *parser) fromUrl(input string) (*config, error) {
+func (p *parser) FromUrl(input string) (*config, error) {
 	return nil, nil
 }
 
-func (p *parser) fromDelimitedString(input string) (*config, error) {
+func (p *parser) FromDelimitedString(input string) (*config, error) {
 	return nil, nil
 }
 
@@ -53,10 +53,10 @@ func (p *parser) Parse(input string) (*config, error) {
 	}
 
 	if strings.Contains(input, "://") {
-		return p.fromUrl(input)
+		return p.FromUrl(input)
 	}
 
-	return p.fromDelimitedString(input)
+	return p.FromDelimitedString(input)
 }
 
 func NewParser() *parser {
