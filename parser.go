@@ -42,6 +42,16 @@ func (c *connection) HasProperties() bool {
 	return len(c.Properties) > 0
 }
 
+func (c *connection) GetProperty(key string, defaults ...string) string {
+	if v, ok := c.Properties[key]; ok {
+		return v
+	} else if len(defaults) > 0 {
+		return defaults[0]
+	} else {
+		return ""
+	}
+}
+
 func newConnection(data map[string]interface{}) (*connection, error) {
 	var b []byte
 	var err error
