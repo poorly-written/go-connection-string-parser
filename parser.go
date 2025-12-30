@@ -11,7 +11,7 @@ var defaultMapping = map[string]string{
 	"pass":     "password",
 }
 
-var defaultDelimiter = ';'
+var defaultDelimiter = ' '
 
 type parser struct {
 	mapping   map[string]string
