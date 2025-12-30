@@ -71,10 +71,6 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 		return nil, err
 	}
 
-	if u.Opaque != "" {
-		return p.FromUrl(u.Opaque)
-	}
-
 	data := make(map[string]interface{})
 	properties := make(map[string]string)
 
