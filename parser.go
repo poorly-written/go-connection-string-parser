@@ -121,7 +121,7 @@ func (p *parser) Parse(input string) (*connection, error) {
 		return &connection{}, nil
 	}
 
-	if strings.Contains(input, "://") {
+	if strings.Contains(input, "://") || strings.HasPrefix(input, "//") {
 		return p.FromUrl(input)
 	}
 
