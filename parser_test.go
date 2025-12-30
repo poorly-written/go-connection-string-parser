@@ -1,6 +1,7 @@
 package connection_string
 
 import (
+	"maps"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -265,26 +266,12 @@ var delimitedStringChecks = map[string]dataProvider{
 	},
 }
 
-func TestRootLevelParser(t *testing.T) {
-	for name, testCase := range urlChecks {
-		t.Run(name, func(t *testing.T) {
-			conn, err := Parse(testCase.input)
+func TestRootLevelParseFunction(t *testing.T) {
+	checks := make(map[string]dataProvider)
+	maps.Insert(checks, maps.All(urlChecks))
+	maps.Insert(checks, maps.All(delimitedStringChecks))
 
-			if testCase.expectsError {
-				assert.Error(t, err)
-
-				return
-			}
-
-			assert.NoError(t, err)
-
-			assert.Equal(t, testCase.expected, conn)
-		})
-	}
-}
-
-func TestRootLevelParserForDelimitedInput(t *testing.T) {
-	for name, testCase := range delimitedStringChecks {
+	for name, testCase := range checks {
 		t.Run(name, func(t *testing.T) {
 			var conn *connection
 			var err error
