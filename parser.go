@@ -1,6 +1,7 @@
 package connection_string
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/url"
@@ -113,7 +114,49 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 }
 
 func (p *parser) FromPair(input string) (*connection, error) {
-	return nil, nil
+	reader := csv.NewReader(strings.NewReader(input))
+	reader.Comma = p.delimiter
+	reader.LazyQuotes = true
+
+	columns, err := reader.Read()
+	if err != nil {
+		return nil, err
+	}
+
+	data := make(map[string]interface{})
+	properties := make(map[string]string)
+
+	for _, column := range columns {
+		if column == "" {
+			continue
+		}
+
+		key, value, _ := strings.Cut(column, "=")
+		key = strings.TrimSpace(key)
+		switch key {
+		case keyUsername, "user":
+			data[keyUsername] = value
+		case keyPassword, "pass":
+			data[keyPassword] = value
+		case keyHost:
+			data[keyHost] = value
+		case keyPort:
+			data[keyPort] = value
+			if numericPort, err := strconv.Atoi(value); err == nil {
+				data[keyNumericPort] = numericPort
+			}
+		case keyDatabase, "dbname", "db":
+			data[keyDatabase] = value
+		default:
+			properties[key] = value
+		}
+	}
+
+	if len(properties) > 0 {
+		data[keyProperties] = properties
+	}
+
+	return newConnection(data)
 }
 
 func (p *parser) Parse(input string) (*connection, error) {
