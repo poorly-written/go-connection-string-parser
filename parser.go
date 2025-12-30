@@ -43,17 +43,16 @@ func (c *connection) HasProperties() bool {
 }
 
 func newConnection(data map[string]interface{}) (*connection, error) {
-	b, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
+	var b []byte
+	var err error
+	if b, err = json.Marshal(data); err == nil {
+		c := &connection{}
+		if err = json.Unmarshal(b, c); err == nil {
+			return c, err
+		}
 	}
 
-	c := &connection{}
-	if err := json.Unmarshal(b, c); err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return nil, err
 }
 
 type parser struct {
