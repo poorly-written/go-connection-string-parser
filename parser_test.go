@@ -43,6 +43,7 @@ func toPtr[T any](v T) *T {
 
 type dataProvider struct {
 	input        string
+	delimiter    *rune
 	expectsError bool
 	expected     *connection
 }
@@ -136,10 +137,162 @@ var urlChecks = map[string]dataProvider{
 	},
 }
 
+var delimitedStringChecks = map[string]dataProvider{
+	"delimited - empty input string": {
+		input:    "",
+		expected: &connection{},
+	},
+	"delimited - having no user and password": {
+		input: "host=127.0.0.1 port=5432 db=db",
+		expected: &connection{
+			Host:        "127.0.0.1",
+			Port:        "5432",
+			NumericPort: 5432,
+			Database:    "db",
+		},
+	},
+	"delimited - having only user & no password": {
+		input: "user=alice host=awesome.redis.server port=6380 db=0",
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    nil,
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - having user and empty password": {
+		input: "user=alice password= host=awesome.redis.server port=6380 db=0",
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    toPtr(""),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - having delimiter in input string": {
+		input: `user=alice "password=pass word" host=awesome.redis.server port=6380 db=0`,
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    toPtr("pass word"),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - having equal operator in input string": {
+		input: "user=alice password=pass=word host=awesome.redis.server port=6380 db=0",
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    toPtr("pass=word"),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - using different delimiter": {
+		input:     "user=alice;password=password;host=awesome.redis.server;port=6380;db=0",
+		delimiter: toPtr(';'),
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    toPtr("password"),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - trims space of the key": {
+		input:     " user=alice; password =password; host =awesome.redis.server;port =6380;db =0",
+		delimiter: toPtr(';'),
+		expected: &connection{
+			Username:    toPtr("alice"),
+			Password:    toPtr("password"),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - skips empty strings caused by delimiter": {
+		// additional space before port
+		input: "host=example.com  port=5432",
+		expected: &connection{
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
+			// Database:    "",
+		},
+	},
+	"delimited - with properties": {
+		input: "user=user password= host=example.com port=5432 db=users sslmode=prefer search_path=public charset=utf8",
+		expected: &connection{
+			Username:    toPtr("user"),
+			Password:    toPtr(""),
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
+			Database:    "users",
+			Properties: map[string]string{
+				"sslmode":     "prefer",
+				"search_path": "public",
+				"charset":     "utf8",
+			},
+		},
+	},
+	"delimited - wrong delimiter causes error": {
+		input:        "user=user password=password host=example.com port=5432 db=users",
+		delimiter:    toPtr(rune(0)),
+		expectsError: true,
+		expected: &connection{
+			Username:    toPtr("user"),
+			Password:    toPtr(""),
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
+			Database:    "users",
+			Properties: map[string]string{
+				"sslmode":     "prefer",
+				"search_path": "public",
+				"charset":     "utf8",
+			},
+		},
+	},
+}
+
 func TestRootLevelParser(t *testing.T) {
 	for name, testCase := range urlChecks {
 		t.Run(name, func(t *testing.T) {
 			conn, err := Parse(testCase.input)
+
+			if testCase.expectsError {
+				assert.Error(t, err)
+
+				return
+			}
+
+			assert.NoError(t, err)
+
+			assert.Equal(t, testCase.expected, conn)
+		})
+	}
+}
+
+func TestRootLevelParserForDelimitedInput(t *testing.T) {
+	for name, testCase := range delimitedStringChecks {
+		t.Run(name, func(t *testing.T) {
+			var conn *connection
+			var err error
+			if testCase.delimiter != nil {
+				conn, err = Parse(testCase.input, *testCase.delimiter)
+			} else {
+				conn, err = Parse(testCase.input)
+			}
 
 			if testCase.expectsError {
 				assert.Error(t, err)
