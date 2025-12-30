@@ -208,12 +208,24 @@ var delimitedStringChecks = map[string]dataProvider{
 			Database:    "0",
 		},
 	},
-	"delimited - trims space of the key": {
+	"delimited - trims space around the key": {
 		input:     " user=alice; password =password; host =awesome.redis.server;port =6380;db =0",
 		delimiter: toPtr(';'),
 		expected: &connection{
 			Username:    toPtr("alice"),
 			Password:    toPtr("password"),
+			Host:        "awesome.redis.server",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"delimited - does not trim space around the value": {
+		input:     " user= alice ; password = password ; host =awesome.redis.server;port =6380;db =0",
+		delimiter: toPtr(';'),
+		expected: &connection{
+			Username:    toPtr(" alice "),
+			Password:    toPtr(" password "),
 			Host:        "awesome.redis.server",
 			Port:        "6380",
 			NumericPort: 6380,
