@@ -305,3 +305,22 @@ func TestRootLevelParseFunction(t *testing.T) {
 		})
 	}
 }
+
+func TestConnectionMethods(t *testing.T) {
+	conn := &connection{
+		Host: "example.com",
+		Properties: map[string]string{
+			"sslmode":     "prefer",
+			"search_path": "public",
+			"charset":     "utf8",
+		},
+	}
+
+	assert.Equal(t, "example.com", conn.Address(), "Address without port")
+
+	// add port
+	conn.Port = "5432"
+	assert.Equalf(t, "example.com:5432", conn.Address(), "Address after adding port")
+
+	assert.True(t, conn.HasProperties())
+}
