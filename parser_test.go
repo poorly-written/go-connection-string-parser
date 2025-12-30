@@ -2,6 +2,7 @@ package connection_string
 
 import (
 	"maps"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -326,4 +327,29 @@ func TestConnectionMethods(t *testing.T) {
 	assert.True(t, conn.GetProperty("sslmode") == "prefer", `get property should return "prefer"`)
 	assert.True(t, conn.GetProperty("schema") == "", `get property should return empty string if property is not set`)
 	assert.True(t, conn.GetProperty("schema", "public") == "public", `get property should return the default value (2nd parameter) if property is not set`)
+}
+
+func TestNewParser(t *testing.T) {
+	conn := &connection{
+		Username:    toPtr("alice"),
+		Password:    toPtr("bob"),
+		Host:        "example.com",
+		Port:        "5432",
+		NumericPort: 5432,
+		Database:    "users",
+		Properties: map[string]string{
+			"sslmode":     "prefer",
+			"search_path": "public",
+			"charset":     "utf8",
+		},
+	}
+
+	urlParser, urlParserErr := NewParser().FromUrl("postgres://alice:bob@example.com:5432/users?sslmode=prefer&search_path=public&charset=utf8")
+	delimitedParser, delimitedParserErr := NewParser().Delimiter(';').FromPair("user=alice;password=bob;host=example.com;port=5432;db=users;sslmode=prefer;search_path=public;charset=utf8")
+
+	assert.NoError(t, urlParserErr)
+	assert.NoError(t, delimitedParserErr)
+
+	assert.Equal(t, conn, urlParser)
+	assert.Equal(t, conn, delimitedParser)
 }
