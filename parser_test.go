@@ -353,3 +353,10 @@ func TestNewParser(t *testing.T) {
 	assert.Equal(t, conn, urlParser)
 	assert.Equal(t, conn, delimitedParser)
 }
+
+func TestMakeSureNewConnectionFails(t *testing.T) {
+	// To coverage 💯
+	_, err := newConnection(map[string]interface{}{"x": math.NaN()})
+
+	assert.Error(t, err)
+}
