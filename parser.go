@@ -4,36 +4,14 @@ import "strings"
 
 type config struct{}
 
-var defaultMapping = map[string]string{
-	"user_id":  "user",
-	"user":     "user",
-	"password": "password",
-	"pass":     "password",
-}
-
 var defaultDelimiter = ' '
 
 type parser struct {
-	mapping   map[string]string
 	delimiter rune
 }
 
 func (p *parser) Delimiter(delimiter rune) *parser {
 	p.delimiter = delimiter
-
-	return p
-}
-
-func (p *parser) UseMapping(mapping map[string]string) *parser {
-	p.mapping = mapping
-
-	return p
-}
-
-func (p *parser) AdditionalMapping(mapping map[string]string) *parser {
-	for k, v := range mapping {
-		p.mapping[k] = v
-	}
 
 	return p
 }
@@ -61,7 +39,6 @@ func (p *parser) Parse(input string) (*config, error) {
 
 func NewParser() *parser {
 	return &parser{
-		mapping:   defaultMapping,
 		delimiter: defaultDelimiter,
 	}
 }
