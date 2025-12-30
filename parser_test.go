@@ -48,11 +48,11 @@ type dataProvider struct {
 }
 
 var urlChecks = map[string]dataProvider{
-	"empty input string": {
+	"url - empty input string": {
 		input:    "",
 		expected: &connection{},
 	},
-	"having no user and password": {
+	"url - having no user and password": {
 		input: "postgres://127.0.0.1:5432/db",
 		expected: &connection{
 			Host:        "127.0.0.1",
@@ -61,7 +61,7 @@ var urlChecks = map[string]dataProvider{
 			Database:    "db",
 		},
 	},
-	"having only user": {
+	"url - having only user & no password": {
 		input: "redis://alice@awesome.redis.server:6380/0",
 		expected: &connection{
 			Username:    toPtr("alice"),
@@ -72,7 +72,7 @@ var urlChecks = map[string]dataProvider{
 			Database:    "0",
 		},
 	},
-	"having user and empty password": {
+	"url - having user and empty password": {
 		input: "redis://alice:@awesome.redis.server:6380/0",
 		expected: &connection{
 			Username:    toPtr("alice"),
@@ -83,11 +83,11 @@ var urlChecks = map[string]dataProvider{
 			Database:    "0",
 		},
 	},
-	"not encoded user password": {
+	"url - not encoded user password": {
 		input:        "postgres://user:abc{DEf1=ghi@example.com:5432/db",
 		expectsError: true,
 	},
-	"percent encoded user password": {
+	"url - percent encoded user password": {
 		input: "postgres://user:abc%7BDEf1=ghi@example.com:5432/db",
 		expected: &connection{
 			Username:    toPtr("user"),
@@ -98,7 +98,7 @@ var urlChecks = map[string]dataProvider{
 			Database:    "db",
 		},
 	},
-	"having parameters": {
+	"url - having parameters": {
 		input: "postgres://127.0.0.1:5432/users?sslmode=prefer&search_path=public&charset=utf8",
 		expected: &connection{
 			Host:        "127.0.0.1",
@@ -112,7 +112,7 @@ var urlChecks = map[string]dataProvider{
 			},
 		},
 	},
-	"with multi scheme": {
+	"url - with multi scheme": {
 		input: "postgresql+asyncpg://postgres:dina@example.com:5432/db",
 		expected: &connection{
 			Username:    toPtr("postgres"),
@@ -123,7 +123,7 @@ var urlChecks = map[string]dataProvider{
 			Database:    "db",
 		},
 	},
-	"with no scheme": {
+	"url - with no scheme": {
 		input: "//alice:@awesome.redis.server:6380/0",
 		expected: &connection{
 			Username:    toPtr("alice"),
