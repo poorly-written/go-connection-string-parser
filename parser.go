@@ -25,7 +25,6 @@ func (p *parser) FromPair(input string) (*config, error) {
 }
 
 func (p *parser) Parse(input string) (*config, error) {
-	input = strings.TrimSpace(input)
 	if input == "" {
 		return &config{}, nil
 	}
