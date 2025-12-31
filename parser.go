@@ -38,8 +38,13 @@ func (c *connection) Address() string {
 	return c.Host
 }
 
-func (c *connection) HasProperties() bool {
-	return len(c.Properties) > 0
+func (c *connection) HasProperty(props ...string) bool {
+	if len(props) == 0 {
+		return len(c.Properties) > 0
+	}
+
+	_, ok := c.Properties[props[0]]
+	return ok
 }
 
 func (c *connection) GetProperty(key string, defaults ...string) string {
