@@ -311,6 +311,21 @@ func TestRootLevelParseFunction(t *testing.T) {
 	}
 }
 
+func TestConnectionStructHasPropertyMethod(t *testing.T) {
+	conn := &connection{
+		Host: "example.com",
+		Properties: map[string]string{
+			"sslmode":     "prefer",
+			"search_path": "public",
+			"charset":     "utf8",
+		},
+	}
+
+	assert.True(t, conn.HasProperty())
+	assert.True(t, conn.HasProperty("sslmode"))
+	assert.False(t, conn.HasProperty("not_in_property"))
+}
+
 func TestConnectionMethods(t *testing.T) {
 	conn := &connection{
 		Host: "example.com",
@@ -327,7 +342,7 @@ func TestConnectionMethods(t *testing.T) {
 	conn.Port = "5432"
 	assert.Equalf(t, "example.com:5432", conn.Address(), "Address after adding port")
 
-	assert.True(t, conn.HasProperties())
+	assert.True(t, conn.HasProperty())
 	assert.True(t, conn.GetProperty("sslmode") == "prefer", `get property should return "prefer"`)
 	assert.True(t, conn.GetProperty("schema") == "", `get property should return empty string if property is not set`)
 	assert.True(t, conn.GetProperty("schema", "public") == "public", `get property should return the default value (2nd parameter) if property is not set`)
