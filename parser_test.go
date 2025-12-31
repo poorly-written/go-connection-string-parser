@@ -311,6 +311,24 @@ func TestRootLevelParseFunction(t *testing.T) {
 	}
 }
 
+func TestConnectionStructHasUsernameAndPasswordMethod(t *testing.T) {
+	conn1 := &connection{
+		Host:     "example.com",
+		Username: toPtr("alice"),
+		Password: toPtr("password"),
+	}
+
+	assert.True(t, conn1.HasUsername())
+	assert.True(t, conn1.HasPassword())
+
+	conn2 := &connection{
+		Host: "example.com",
+	}
+
+	assert.False(t, conn2.HasUsername())
+	assert.False(t, conn2.HasPassword())
+}
+
 func TestConnectionStructHasPropertyMethod(t *testing.T) {
 	conn := &connection{
 		Host: "example.com",
