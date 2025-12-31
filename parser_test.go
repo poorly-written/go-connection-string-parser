@@ -1,4 +1,4 @@
-package connection_string
+package parser
 
 import (
 	"math"
