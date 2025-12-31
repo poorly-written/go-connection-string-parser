@@ -38,6 +38,14 @@ func (c *connection) Address() string {
 	return c.Host
 }
 
+func (c *connection) HasUsername() bool {
+	return c.Username != nil
+}
+
+func (c *connection) HasPassword() bool {
+	return c.Password != nil
+}
+
 func (c *connection) HasProperty(props ...string) bool {
 	if len(props) == 0 {
 		return len(c.Properties) > 0
