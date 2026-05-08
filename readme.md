@@ -43,7 +43,6 @@ func main() {
 
 `Parse` picks the right branch based on the input:
 
-- An empty string returns an empty connection (no error).
 - An input that contains `://`, or starts with `//`, is parsed as a URL.
 - Anything else is parsed as a delimited key/value string. The default delimiter is a space.
 
