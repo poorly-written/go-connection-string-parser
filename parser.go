@@ -21,14 +21,14 @@ const keyProperties = "properties"
 var defaultDelimiter = ' '
 
 type connection struct {
-	Type        *string           `json:"type,omitempty"`
-	Username    *string           `json:"username,omitempty"`
-	Password    *string           `json:"password,omitempty"`
-	Host        string            `json:"host"`
-	Port        string            `json:"port"`
-	NumericPort int               `json:"numeric_port"`
-	Database    string            `json:"database"`
-	Properties  map[string]string `json:"properties,omitempty"`
+	Type        *string             `json:"type,omitempty"`
+	Username    *string             `json:"username,omitempty"`
+	Password    *string             `json:"password,omitempty"`
+	Host        string              `json:"host"`
+	Port        string              `json:"port"`
+	NumericPort int                 `json:"numeric_port"`
+	Database    string              `json:"database"`
+	Properties  map[string][]string `json:"properties,omitempty"`
 }
 
 func (c *connection) IsFor(t string, sensitive ...bool) bool {
@@ -69,13 +69,21 @@ func (c *connection) HasProperty(props ...string) bool {
 }
 
 func (c *connection) GetProperty(key string, defaults ...string) string {
-	if v, ok := c.Properties[key]; ok {
-		return v
+	if v, ok := c.Properties[key]; ok && len(v) > 0 {
+		return v[0]
 	} else if len(defaults) > 0 {
 		return defaults[0]
 	} else {
 		return ""
 	}
+}
+
+func (c *connection) GetProperties(key string) []string {
+	if v, ok := c.Properties[key]; ok {
+		return v
+	}
+
+	return nil
 }
 
 func newConnection(data map[string]interface{}) (*connection, error) {
@@ -108,7 +116,6 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 	}
 
 	data := make(map[string]interface{})
-	properties := make(map[string]string)
 
 	if u.Scheme != "" {
 		data[keyType] = u.Scheme
@@ -138,11 +145,7 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 	}
 
 	if queries := u.Query(); len(queries) > 0 {
-		for k, v := range queries {
-			properties[k] = v[0]
-		}
-
-		data[keyProperties] = properties
+		data[keyProperties] = map[string][]string(queries)
 	}
 
 	return newConnection(data)
@@ -159,7 +162,7 @@ func (p *parser) FromPair(input string) (*connection, error) {
 	}
 
 	data := make(map[string]interface{})
-	properties := make(map[string]string)
+	properties := make(map[string][]string)
 
 	for _, column := range columns {
 		if column == "" {
@@ -185,7 +188,7 @@ func (p *parser) FromPair(input string) (*connection, error) {
 		case keyDatabase, "dbname", "db":
 			data[keyDatabase] = value
 		default:
-			properties[key] = value
+			properties[key] = append(properties[key], value)
 		}
 	}
 
