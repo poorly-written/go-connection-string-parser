@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-const keyScheme = "scheme"
+const keyType = "type"
 const keyUsername = "username"
 const keyPassword = "password"
 const keyHost = "host"
@@ -21,6 +21,7 @@ const keyProperties = "properties"
 var defaultDelimiter = ' '
 
 type connection struct {
+	Type        *string           `json:"type,omitempty"`
 	Username    *string           `json:"username,omitempty"`
 	Password    *string           `json:"password,omitempty"`
 	Host        string            `json:"host"`
@@ -28,6 +29,18 @@ type connection struct {
 	NumericPort int               `json:"numeric_port"`
 	Database    string            `json:"database"`
 	Properties  map[string]string `json:"properties,omitempty"`
+}
+
+func (c *connection) IsFor(t string, sensitive ...bool) bool {
+	if c.Type == nil {
+		return false
+	}
+
+	if len(sensitive) == 0 || false == sensitive[0] {
+		t = strings.ToLower(t)
+	}
+
+	return t == *c.Type
 }
 
 func (c *connection) Address() string {
@@ -98,7 +111,7 @@ func (p *parser) FromUrl(input string) (*connection, error) {
 	properties := make(map[string]string)
 
 	if u.Scheme != "" {
-		data[keyScheme] = u.Scheme
+		data[keyType] = u.Scheme
 	}
 
 	if u.User != nil {
@@ -156,6 +169,8 @@ func (p *parser) FromPair(input string) (*connection, error) {
 		key, value, _ := strings.Cut(column, "=")
 		key = strings.TrimSpace(key)
 		switch key {
+		case keyType, "scheme":
+			data[keyType] = value
 		case keyUsername, "user":
 			data[keyUsername] = value
 		case keyPassword, "pass":
