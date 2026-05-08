@@ -57,6 +57,7 @@ var urlChecks = map[string]dataProvider{
 	"url - having no user and password": {
 		input: "postgres://127.0.0.1:5432/db",
 		expected: &connection{
+			Type:        toPtr("postgres"),
 			Host:        "127.0.0.1",
 			Port:        "5432",
 			NumericPort: 5432,
@@ -66,6 +67,7 @@ var urlChecks = map[string]dataProvider{
 	"url - having only user & no password": {
 		input: "redis://alice@awesome.redis.server:6380/0",
 		expected: &connection{
+			Type:        toPtr("redis"),
 			Username:    toPtr("alice"),
 			Password:    nil,
 			Host:        "awesome.redis.server",
@@ -77,6 +79,7 @@ var urlChecks = map[string]dataProvider{
 	"url - having user and empty password": {
 		input: "redis://alice:@awesome.redis.server:6380/0",
 		expected: &connection{
+			Type:        toPtr("redis"),
 			Username:    toPtr("alice"),
 			Password:    toPtr(""),
 			Host:        "awesome.redis.server",
@@ -92,6 +95,7 @@ var urlChecks = map[string]dataProvider{
 	"url - percent encoded user password": {
 		input: "postgres://user:abc%7BDEf1=ghi@example.com:5432/db",
 		expected: &connection{
+			Type:        toPtr("postgres"),
 			Username:    toPtr("user"),
 			Password:    toPtr("abc{DEf1=ghi"),
 			Host:        "example.com",
@@ -103,20 +107,22 @@ var urlChecks = map[string]dataProvider{
 	"url - having parameters": {
 		input: "postgres://127.0.0.1:5432/users?sslmode=prefer&search_path=public&charset=utf8",
 		expected: &connection{
+			Type:        toPtr("postgres"),
 			Host:        "127.0.0.1",
 			Port:        "5432",
 			NumericPort: 5432,
 			Database:    "users",
-			Properties: map[string]string{
-				"sslmode":     "prefer",
-				"search_path": "public",
-				"charset":     "utf8",
+			Properties: map[string][]string{
+				"sslmode":     {"prefer"},
+				"search_path": {"public"},
+				"charset":     {"utf8"},
 			},
 		},
 	},
 	"url - with multi scheme": {
 		input: "postgresql+asyncpg://postgres:dina@example.com:5432/db",
 		expected: &connection{
+			Type:        toPtr("postgresql+asyncpg"),
 			Username:    toPtr("postgres"),
 			Password:    toPtr("dina"),
 			Host:        "example.com",
@@ -134,6 +140,54 @@ var urlChecks = map[string]dataProvider{
 			Port:        "6380",
 			NumericPort: 6380,
 			Database:    "0",
+		},
+	},
+	"url - repeated query parameter preserves all values in order": {
+		input: "postgres://example.com:5432/db?opt=a&opt=b&opt=c",
+		expected: &connection{
+			Type:        toPtr("postgres"),
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
+			Database:    "db",
+			Properties: map[string][]string{
+				"opt": {"a", "b", "c"},
+			},
+		},
+	},
+	"url - mongodb readPreferenceTags repeated retains order": {
+		input: "mongodb://host.example/?readPreference=secondary&readPreferenceTags=dc:east,rack:1&readPreferenceTags=dc:east&readPreferenceTags=",
+		expected: &connection{
+			Type: toPtr("mongodb"),
+			Host: "host.example",
+			Properties: map[string][]string{
+				"readPreference":     {"secondary"},
+				"readPreferenceTags": {"dc:east,rack:1", "dc:east", ""},
+			},
+		},
+	},
+	"url - empty userinfo (bare @) yields empty username pointer": {
+		input: "redis://@host.example:6380/0",
+		expected: &connection{
+			Type:        toPtr("redis"),
+			Username:    toPtr(""),
+			Host:        "host.example",
+			Port:        "6380",
+			NumericPort: 6380,
+			Database:    "0",
+		},
+	},
+	"url - malformed escape returns parse error": {
+		input:        "postgres://%zz/db",
+		expectsError: true,
+	},
+	"url - root-only path leaves Database empty": {
+		input: "postgres://example.com:5432/",
+		expected: &connection{
+			Type:        toPtr("postgres"),
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
 		},
 	},
 }
@@ -251,10 +305,68 @@ var delimitedStringChecks = map[string]dataProvider{
 			Port:        "5432",
 			NumericPort: 5432,
 			Database:    "users",
-			Properties: map[string]string{
-				"sslmode":     "prefer",
-				"search_path": "public",
-				"charset":     "utf8",
+			Properties: map[string][]string{
+				"sslmode":     {"prefer"},
+				"search_path": {"public"},
+				"charset":     {"utf8"},
+			},
+		},
+	},
+	"delimited - using type key": {
+		input: "type=postgres host=example.com port=5432",
+		expected: &connection{
+			Type:        toPtr("postgres"),
+			Host:        "example.com",
+			Port:        "5432",
+			NumericPort: 5432,
+		},
+	},
+	"delimited - using scheme alias for type": {
+		input: "scheme=mysql host=example.com port=3306",
+		expected: &connection{
+			Type:        toPtr("mysql"),
+			Host:        "example.com",
+			Port:        "3306",
+			NumericPort: 3306,
+		},
+	},
+	"delimited - repeated property key keeps both values in order": {
+		input: "host=example.com tag=a tag=b tag=c",
+		expected: &connection{
+			Host: "example.com",
+			Properties: map[string][]string{
+				"tag": {"a", "b", "c"},
+			},
+		},
+	},
+	"delimited - using pass alias for password": {
+		input: "user=alice pass=secret host=example.com",
+		expected: &connection{
+			Username: toPtr("alice"),
+			Password: toPtr("secret"),
+			Host:     "example.com",
+		},
+	},
+	"delimited - using dbname alias for database": {
+		input: "host=example.com dbname=users",
+		expected: &connection{
+			Host:     "example.com",
+			Database: "users",
+		},
+	},
+	"delimited - non-numeric port leaves NumericPort as zero": {
+		input: "host=example.com port=abc",
+		expected: &connection{
+			Host: "example.com",
+			Port: "abc",
+		},
+	},
+	"delimited - bare key without equals goes to properties": {
+		input: "host=example.com flag",
+		expected: &connection{
+			Host: "example.com",
+			Properties: map[string][]string{
+				"flag": {""},
 			},
 		},
 	},
@@ -262,19 +374,6 @@ var delimitedStringChecks = map[string]dataProvider{
 		input:        "user=user password=password host=example.com port=5432 db=users",
 		delimiter:    toPtr(rune(0)),
 		expectsError: true,
-		expected: &connection{
-			Username:    toPtr("user"),
-			Password:    toPtr(""),
-			Host:        "example.com",
-			Port:        "5432",
-			NumericPort: 5432,
-			Database:    "users",
-			Properties: map[string]string{
-				"sslmode":     "prefer",
-				"search_path": "public",
-				"charset":     "utf8",
-			},
-		},
 	},
 }
 
@@ -332,10 +431,10 @@ func TestConnectionStructHasUsernameAndPasswordMethod(t *testing.T) {
 func TestConnectionStructHasPropertyMethod(t *testing.T) {
 	conn := &connection{
 		Host: "example.com",
-		Properties: map[string]string{
-			"sslmode":     "prefer",
-			"search_path": "public",
-			"charset":     "utf8",
+		Properties: map[string][]string{
+			"sslmode":     {"prefer"},
+			"search_path": {"public"},
+			"charset":     {"utf8"},
 		},
 	}
 
@@ -347,10 +446,10 @@ func TestConnectionStructHasPropertyMethod(t *testing.T) {
 func TestConnectionMethods(t *testing.T) {
 	conn := &connection{
 		Host: "example.com",
-		Properties: map[string]string{
-			"sslmode":     "prefer",
-			"search_path": "public",
-			"charset":     "utf8",
+		Properties: map[string][]string{
+			"sslmode":     {"prefer"},
+			"search_path": {"public"},
+			"charset":     {"utf8"},
 		},
 	}
 
@@ -366,20 +465,45 @@ func TestConnectionMethods(t *testing.T) {
 	assert.True(t, conn.GetProperty("schema", "public") == "public", `get property should return the default value (2nd parameter) if property is not set`)
 }
 
-func TestNewParser(t *testing.T) {
+func TestConnectionGetProperties(t *testing.T) {
 	conn := &connection{
+		Properties: map[string][]string{
+			"readPreferenceTags": {"dc:east,rack:1", "dc:east", ""},
+			"sslmode":            {"prefer"},
+		},
+	}
+
+	assert.Equal(t, []string{"dc:east,rack:1", "dc:east", ""}, conn.GetProperties("readPreferenceTags"))
+	assert.Equal(t, []string{"prefer"}, conn.GetProperties("sslmode"))
+	assert.Nil(t, conn.GetProperties("missing"))
+
+	// GetProperty on a multi-valued key returns the first value.
+	assert.Equal(t, "dc:east,rack:1", conn.GetProperty("readPreferenceTags"))
+
+	// GetProperty falls back when the slice exists but is empty.
+	empty := &connection{Properties: map[string][]string{"k": {}}}
+	assert.Equal(t, "", empty.GetProperty("k"))
+	assert.Equal(t, "fallback", empty.GetProperty("k", "fallback"))
+}
+
+func TestNewParser(t *testing.T) {
+	urlConn := &connection{
+		Type:        toPtr("postgres"),
 		Username:    toPtr("alice"),
 		Password:    toPtr("bob"),
 		Host:        "example.com",
 		Port:        "5432",
 		NumericPort: 5432,
 		Database:    "users",
-		Properties: map[string]string{
-			"sslmode":     "prefer",
-			"search_path": "public",
-			"charset":     "utf8",
+		Properties: map[string][]string{
+			"sslmode":     {"prefer"},
+			"search_path": {"public"},
+			"charset":     {"utf8"},
 		},
 	}
+
+	delimitedConn := *urlConn
+	delimitedConn.Type = nil
 
 	urlParser, urlParserErr := NewParser().FromUrl("postgres://alice:bob@example.com:5432/users?sslmode=prefer&search_path=public&charset=utf8")
 	delimitedParser, delimitedParserErr := NewParser().Delimiter(';').FromPair("user=alice;password=bob;host=example.com;port=5432;db=users;sslmode=prefer;search_path=public;charset=utf8")
@@ -387,8 +511,48 @@ func TestNewParser(t *testing.T) {
 	assert.NoError(t, urlParserErr)
 	assert.NoError(t, delimitedParserErr)
 
-	assert.Equal(t, conn, urlParser)
-	assert.Equal(t, conn, delimitedParser)
+	assert.Equal(t, urlConn, urlParser)
+	assert.Equal(t, &delimitedConn, delimitedParser)
+}
+
+func TestConnectionIsFor(t *testing.T) {
+	t.Run("returns false when Type is nil", func(t *testing.T) {
+		c := &connection{}
+		assert.False(t, c.IsFor("postgres"))
+		assert.False(t, c.IsFor("postgres", true))
+	})
+
+	t.Run("case-insensitive match by default", func(t *testing.T) {
+		c := &connection{Type: toPtr("postgres")}
+		assert.True(t, c.IsFor("postgres"))
+		assert.True(t, c.IsFor("POSTGRES"))
+		assert.True(t, c.IsFor("Postgres"))
+	})
+
+	t.Run("case-insensitive when sensitive flag is false", func(t *testing.T) {
+		c := &connection{Type: toPtr("postgres")}
+		assert.True(t, c.IsFor("POSTGRES", false))
+	})
+
+	t.Run("case-sensitive when sensitive flag is true", func(t *testing.T) {
+		c := &connection{Type: toPtr("postgres")}
+		assert.True(t, c.IsFor("postgres", true))
+		assert.False(t, c.IsFor("Postgres", true))
+		assert.False(t, c.IsFor("POSTGRES", true))
+	})
+
+	t.Run("returns false when types differ", func(t *testing.T) {
+		c := &connection{Type: toPtr("postgres")}
+		assert.False(t, c.IsFor("mysql"))
+		assert.False(t, c.IsFor("mysql", true))
+	})
+
+	t.Run("only first sensitive arg is honored", func(t *testing.T) {
+		c := &connection{Type: toPtr("postgres")}
+		// extra args are ignored
+		assert.True(t, c.IsFor("postgres", true, false))
+		assert.True(t, c.IsFor("POSTGRES", false, true))
+	})
 }
 
 func TestMakeSureNewConnectionFails(t *testing.T) {
