@@ -8,12 +8,6 @@ poorly-written/go-connection-string-parser
 shapes — URL style (`postgres://user:pass@host:5432/db`) and key/value pair style (`host=example.com port=5432`) — with
 one tiny API.
 
-# Note
-
-`Properties` holds `map[string][]string`, not `map[string]string`. A single key can carry many values (for example
-MongoDB's `readPreferenceTags`), and the order of values is preserved. Use `GetProperty` for the first value, or
-`GetProperties` for the full slice.
-
 # Installation
 
 To install the package, run
